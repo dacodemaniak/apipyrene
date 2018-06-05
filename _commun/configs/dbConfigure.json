@@ -1,0 +1,15 @@
+{
+	"provider": "MySQL",
+
+	"design": {
+		"dsn": "mysql:host=127.0.0.1; port=3306; dbname=pyrene_repo;",
+		"user": "pyrene_dba",
+		"password": "P1r3n3"
+	},
+
+	"production": {
+		"dsn": "mysql:host=127.0.0.1; port=3306; dbname=pyrene_repo;",
+		"user": "pyrene_dba",
+		"password": "P1r3n3"
+	}
+}

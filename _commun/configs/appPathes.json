@@ -1,0 +1,15 @@
+{
+	"Customer": {
+		"namespace": "::App::Customer::",
+		"class": "Controller",
+		"params": ["id*"],
+		"method": null,
+		"rendermode": "page"
+	},
+	"CustomerMenu": {
+		"namespace": "::App::CustomerMenu::",
+		"class": "Controller",
+		"method": null,
+		"rendermode": "page"
+	}
+}
