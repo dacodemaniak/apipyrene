@@ -1,0 +1,203 @@
+<?php
+/**
+* @name UserController Service REST pour la gestion des utilisateurs
+* @author IDea Factory (dev-team@ideafactory.fr)
+* @package UserBundle\Controller
+* @version 0.1.0
+*/
+namespace UserBundle\Controller;
+
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Symfony\Bundle\FrameworkBundle\Controller\Controller;
+use FOS\RestBundle\Controller\Annotations as Rest;
+use FOS\RestBundle\Controller\FOSRestController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use FOS\RestBundle\View\View;
+use UserBundle\Entity\User;
+use UserBundle\Entity\Groupe;
+
+class UserController extends FOSRestController {
+	
+	/**
+	 * Instance du repo des utilisateurs
+	 * @var unknown
+	 */
+	private $_repository;
+	
+	/**
+	 * Instance d'un utilisateur complet
+	 * @var unknown
+	 */
+	private $_wholeUser;
+	
+	/**
+	 * Constructeur du contrôleur User
+	 */
+	public function __construct() {}
+	
+	/**
+	 * @Rest\Put("/Register")
+	 */
+	public function registerAction(Request $request) {
+		if (!$this->_alreadyExists($request->get("email"))) {
+			$this->_wholeUser = new User();
+			
+			// Génère le sel de renforcement du mot de passe
+			$salt = $this->_makeSalt();
+			
+			$content = [];
+			
+			$content["lastName"] = $request->get("lastName");
+			$content["firstName"] = $request->get("firstName");
+			$content["civility"] = $request->get("civility");
+			$content["company"] = $request->get("company");
+			$content["subscribeToNewsletter"] = $request->get("newsletter");
+			
+			$this->_wholeUser
+				->setLogin($request->get("email"))
+				->setSecurityPass($this->_createPassword($request->get("password"), $salt))
+				->setSalt($salt)
+				->setIsValid(true)
+				->setCreatedAt(new \DateTime())
+				->setLastLogin(new \DateTime())
+				->setValidatedAt(new \DateTime())
+				->setContent(json_encode($content))
+				->setGroup($this->_getCustomerGroup());
+			
+			// Fait persister la donnée
+			$entityManager = $this->getDoctrine()->getManager();
+			$entityManager->persist($this->_wholeUser);
+			$entityManager->flush();
+			
+			return new View($this->_wholeUser, Response::HTTP_CREATED);
+		}
+		
+		return new View("Un compte avec cet email existe déjà sur ce site", Response::HTTP_CONFLICT);
+	}
+	
+	/**
+	 * @Rest\Post("/Signin")
+	 * @param Request $request Requête envoyée
+	 */
+	public function signinAction(Request $request) {
+		
+		if ($request) {
+			if (!$this->_checkLogin($request->get("login"))) {
+				return new View("L'adresse e-mail est inconnue ou votre compte a été invalidé", Response::HTTP_FORBIDDEN);
+			}
+			
+			if (!$this->_validPassword($request->get("password"))) {
+				return new View("Votre mot de passe est incorrect, veuillez réessayer s'il vous plaît", Response::HTTP_FORBIDDEN);
+			}
+			
+			return new View($this->_wholeUser, Response::HTTP_OK);
+		}
+	}
+	
+
+	/**
+	 * Détermine si le login saisi n'existe pas déjà
+	 * @param string $login
+	 * @return bool
+	 */
+	private function _alreadyExists(string $login): bool {
+		$this->_wholeUser = $this->getDoctrine()
+			->getManager()
+			->getRepository("UserBundle:User")
+			->findOneBy(["login" => $login]);
+		
+		if ($this->_wholeUser) {
+			return true;
+		}
+		
+		return false;
+	}
+	/**
+	 * Vérifie l'existence du login et sa validité
+	 * @return boolean
+	 */
+	private function _checkLogin(string $login): bool {
+		$this->_wholeUser = $this->getDoctrine()
+			->getManager()
+			->getRepository("UserBundle:User")
+			->findOneBy(["login" => $login]);
+		
+		if ($this->_wholeUser) {
+			if ($this->_wholeUser->getIsValid()) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Vérifie le mot de passe avec la clé de renforcement
+	 * @param string $password
+	 * @return boolean
+	 */
+	private function _validPassword(string $password): bool {
+		$saltedPassword = $this->_wholeUser->getSalt() . $password . $this->_wholeUser->getSalt();
+		
+		if (md5($saltedPassword) === $this->_wholeUser->getSecurityPass()) {
+			return true;
+		}
+		
+		return false;
+	}
+
+	private function _getCustomerGroup() {
+		$group = $this->getDoctrine()
+			->getManager()
+			->getRepository("UserBundle:Groupe")
+			->findOneBy(["libelle" => "customer"]);
+		
+		if (!$group) {
+			$group = new UserBundle\Entity\Groupe();
+			$group
+				->setLibelle("customer")
+				->setCanBeDeleted(false);
+			// Assurer la persistence du groupe
+			$entityManager = $this->getDoctrine()->getManager();
+			$entityManager->persist($group);
+			$entityManager->flush();
+		}
+		
+		return $group;
+		
+	}
+	
+	/**
+	 * Génère un sel aléatoire
+	 * @return string
+	 * @todo Créer un service pour gérer ce type de traitement
+	 */
+	private function _makeSalt(): string {
+		$chars = [
+			"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z",
+			"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+			"0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+			"*", "-", "+", "/", "#", "@", "^", "|"
+		];
+		
+		$saltChars = [];
+		
+		for ($i = 0; $i < 10; $i++) {
+			$random = rand(0, 69);
+			$saltChars[$i] = $chars[$random];
+		}
+		
+		return join("",$saltChars);
+	}
+	
+	/**
+	 * Retourne le mot de passe renforcé en hash md5
+	 * @param string $password
+	 * @param string $salt
+	 * @return string
+	 */
+	private function _createPassword(string $password, string $salt): string {
+		return md5($salt.$password.$salt);
+	}
+}
