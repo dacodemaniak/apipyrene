@@ -7,6 +7,8 @@ use Doctrine\ORM\Mapping\OneToMany as OneToMany;
 use Doctrine\ORM\Mapping\ManyToOne as ManyToOne;
 use Doctrine\ORM\Mapping\JoinColumn as JoinColumn;
 use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
  * Categorie
@@ -174,7 +176,11 @@ class Categorie
      */
     public function getContent()
     {
-        return $this->content;
+    	if ($this->content) {
+    		$json = new JsonDecode();
+    		
+    		return $json->decode($this->content, JsonEncoder::FORMAT);
+    	}
     }
     
     /**

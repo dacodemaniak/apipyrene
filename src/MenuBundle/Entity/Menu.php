@@ -4,6 +4,8 @@ namespace MenuBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
  * Menu
@@ -127,11 +129,56 @@ class Menu
     /**
      * Get content
      *
-     * @return string
+     * @return JsonDecode
      */
     public function getContent()
     {
-        return $this->content;
+    	if ($this->content) {
+    		$json = new JsonDecode();
+    	
+        	return $json->decode($this->content, JsonEncoder::FORMAT);
+    	}
+    }
+    
+    /**
+     * Ajoute une catégorie
+     * @param MenuBundle\Entity\Categorie $categorie
+     * @return Menu
+     */
+    public function addCategorie($categorie): Menu {
+    	$this->categories[] = $categorie;
+    	
+    	return $this;
+    }
+    
+    /**
+     * Retourne la liste des catégories du menu courant
+     * @return \ArrayCollection
+     */
+    public function getCategories() {
+    	return $this->categories;
+    }
+    
+    public function categoriesToArray() {
+    	$options = [];
+    	
+    	if ($this->categories)
+    	{
+    		foreach ($this->categories as $option) {
+    			$categorie = $option->getCategorie();
+    			if ($categorie->getIsEnabled()) {
+	    			$options[] = [
+	    				"id" => $categorie->getId(),
+	    				"ordre" => $option->getPlace(),
+	    				"slug" => $categorie->getSlug(),
+	    				"route" => $categorie->getRoute(),
+	    				"content" => $categorie->getContent()
+	    			];
+    			}
+    		}
+    	}
+    	
+		return $options;
     }
 }
 

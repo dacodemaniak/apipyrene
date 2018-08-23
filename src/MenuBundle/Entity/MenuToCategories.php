@@ -72,5 +72,42 @@ class MenuToCategories
     {
         return $this->place;
     }
+    
+    /**
+     * Définit le menu de l'association
+     * @param \MenuBundle\Entity\Menu $menu
+     * @return \MenuBundle\Entity\MenuToCategories
+     */
+    public function setMenu($menu) {
+    	$this->menu = $menu;
+    	
+    	return $this;
+    }
+    
+    /**
+     * Retourne le menu de l'association
+     * @return \MenuBundle\Entity\Menu
+     */
+    public function getMenu(): \MenuBundle\Entity\Menu {
+    	return $this->menu;
+    }
+    
+    /**
+     * Définit la catégorie de l'association
+     * @param \MenuBundle\Entity\Categorie $categorie
+     * @return \MenuBundle\Entity\MenuToCategories
+     */
+    public function setCategorie($categorie): \MenuBundle\Entity\MenuToCategories {
+    	$this->category = $categorie;
+    	return $this;
+    }
+    
+    /**
+     * Retourne la catégorie de l'association
+     * @return \MenuBundle\Entity\Categorie
+     */
+    public function getCategorie(): \MenuBundle\Entity\Categorie {
+    	return $this->category;
+    }
 }
 

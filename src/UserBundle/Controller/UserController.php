@@ -16,6 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 use FOS\RestBundle\View\View;
 use UserBundle\Entity\User;
 use UserBundle\Entity\Groupe;
+use Doctrine\ORM\Mapping\Entity;
+use Doctrine\Common\Util\ClassUtils;
 
 class UserController extends FOSRestController {
 	
@@ -40,6 +42,7 @@ class UserController extends FOSRestController {
 	 * @Rest\Put("/Register")
 	 */
 	public function registerAction(Request $request) {
+		
 		if (!$this->_alreadyExists($request->get("email"))) {
 			$this->_wholeUser = new User();
 			
@@ -70,7 +73,7 @@ class UserController extends FOSRestController {
 			$entityManager->persist($this->_wholeUser);
 			$entityManager->flush();
 			
-			return new View($this->_wholeUser, Response::HTTP_CREATED);
+			return new View($this->_format($this->_wholeUser), Response::HTTP_CREATED);
 		}
 		
 		return new View("Un compte avec cet email existe déjà sur ce site", Response::HTTP_CONFLICT);
@@ -91,7 +94,7 @@ class UserController extends FOSRestController {
 				return new View("Votre mot de passe est incorrect, veuillez réessayer s'il vous plaît", Response::HTTP_FORBIDDEN);
 			}
 			
-			return new View($this->_wholeUser, Response::HTTP_OK);
+			return new View($this->_format($this->_wholeUser), Response::HTTP_OK);
 		}
 	}
 	
@@ -147,21 +150,34 @@ class UserController extends FOSRestController {
 		return false;
 	}
 
-	private function _getCustomerGroup() {
-		$group = $this->getDoctrine()
-			->getManager()
-			->getRepository("UserBundle:Groupe")
-			->findOneBy(["libelle" => "customer"]);
-		
-		if (!$group) {
-			$group = new UserBundle\Entity\Groupe();
-			$group
-				->setLibelle("customer")
-				->setCanBeDeleted(false);
-			// Assurer la persistence du groupe
-			$entityManager = $this->getDoctrine()->getManager();
-			$entityManager->persist($group);
-			$entityManager->flush();
+	/**
+	 * Récupère ou crée le groupe de l'utilisateur identifié
+	 * @param int $id
+	 * @return \UserBundle\Controller\UserBundle\Entity\Groupe
+	 */
+	private function _getCustomerGroup(int $id = null) {
+		if (is_null($id)) {
+			$group = $this->getDoctrine()
+				->getManager()
+				->getRepository("UserBundle:Groupe")
+				->findOneBy(["libelle" => "customer"]);
+			
+			if (!$group) {
+				$group = new UserBundle\Entity\Groupe();
+				$group
+					->setLibelle("customer")
+					->setCanBeDeleted(false);
+				// Assurer la persistence du groupe
+				$entityManager = $this->getDoctrine()->getManager();
+				$entityManager->persist($group);
+				$entityManager->flush();
+			}
+		} else {
+			// Retourne le groupe de l'utilisateur à partir de son id
+			$group = $this->getDoctrine()
+				->getManager()
+				->getRepository("UserBundle:Groupe")
+				->find($id);
 		}
 		
 		return $group;
@@ -199,5 +215,41 @@ class UserController extends FOSRestController {
 	 */
 	private function _createPassword(string $password, string $salt): string {
 		return md5($salt.$password.$salt);
+	}
+	
+	/**
+	 * Retourne le formatage d'un utilisateur complet
+	 * @param Entity $userEntity
+	 * @return array
+	 */
+	private function _format($userEntity) {
+		$datas = [];
+		
+		$datas["login"] = $userEntity->getLogin();
+		
+		// Traite le contenu, pour récupérer les données cohérentes
+		$jsonContent = $userEntity->getContent();
+		$datas["name"] = $jsonContent->firstName .
+			" " . $jsonContent->lastName;
+		
+		// Traite les options de menu
+		$group = $userEntity->getGroup();
+		
+		$menus = [];
+		if ($group->getMenus()) {
+			foreach($group->getMenus() as $menu) {
+				$menus[] = [
+					"id" => $menu->getId(),
+					"slug" => $menu->getSlug(),
+					"region" => $menu->getRegion(),
+					"content" => $menu->getContent(),
+					"options" => $menu->categoriesToArray()
+				];
+			}
+		}
+		
+		$datas["menus"] = $menus;
+		
+		return $datas;
 	}
 }

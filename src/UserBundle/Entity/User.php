@@ -4,6 +4,8 @@ namespace UserBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use Symfony\Component\Serializer\Encoder\JsonDecode;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
  * User
@@ -81,7 +83,7 @@ class User
     /**
      * @var \UserBundle\Groupe
      *
-     * @ORM\ManyToOne(targetEntity="Groupe", inversedBy="users")
+     * @ORM\ManyToOne(targetEntity="Groupe", inversedBy="users", fetch="EAGER")
      * @ORM\JoinColumn(name="groupe_id", referencedColumnName="id")
      */
     private $group;
@@ -286,11 +288,12 @@ class User
     /**
      * Get content
      *
-     * @return string
+     * @return JsonDecode
      */
     public function getContent()
     {
-        return $this->content;
+    	$json = new JsonDecode();
+        return $json->decode($this->content, JsonEncoder::FORMAT);
     }
     
     /**
