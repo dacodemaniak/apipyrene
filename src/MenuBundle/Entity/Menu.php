@@ -134,7 +134,7 @@ class Menu
     public function getContent()
     {
     	if ($this->content) {
-    		$json = new JsonDecode();
+    		$json = new JsonDecode(true);
     	
         	return $json->decode($this->content, JsonEncoder::FORMAT);
     	}
@@ -172,7 +172,8 @@ class Menu
 	    				"ordre" => $option->getPlace(),
 	    				"slug" => $categorie->getSlug(),
 	    				"route" => $categorie->getRoute(),
-	    				"content" => $categorie->getContent()
+	    				"content" => $categorie->getContent(),
+	    				"nodes" => $categorie->childrenToArray()
 	    			];
     			}
     		}

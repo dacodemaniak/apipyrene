@@ -172,13 +172,13 @@ class Categorie
     /**
      * Get content
      *
-     * @return string
+     * @return JsonDecode
      */
     public function getContent()
     {
+    	
     	if ($this->content) {
-    		$json = new JsonDecode();
-    		
+    		$json = new JsonDecode(true);
     		return $json->decode($this->content, JsonEncoder::FORMAT);
     	}
     }
@@ -189,6 +189,25 @@ class Categorie
      */
     public function getChildren() {
     	return $this->children;
+    }
+    
+
+    public function childrenToArray() {
+		$datas = [];
+		
+		if (($children = $this->getChildren())) {
+			foreach ($children as $child) {
+				if ($child->getIsEnabled()) {
+					$datas[] = [
+						"id" => $child->getId(),
+						"slug" => $child->getSlug(),
+						"route" => $child->getRoute(),
+						"content" => $child->getContent(),
+						"nodes" => $child->childrenToArray()
+					];
+				}
+			}
+		}
     }
     
     /**

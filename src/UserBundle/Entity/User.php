@@ -292,7 +292,7 @@ class User
      */
     public function getContent()
     {
-    	$json = new JsonDecode();
+    	$json = new JsonDecode(true);
         return $json->decode($this->content, JsonEncoder::FORMAT);
     }
     
