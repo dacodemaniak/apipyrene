@@ -3,6 +3,7 @@
 namespace ContentBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use \MenuBundle\Entity\Categorie;
 
 /**
  * CategorieToArticles

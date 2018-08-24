@@ -69,10 +69,17 @@ class Categorie
      * @JoinColumn(name="parent_id", referencedColumnName="id")
      */
     private $parent;
+
+    /**
+     * @ORM\OneToMany(targetEntity=\ContentBundle\Entity\CategorieToArticles::class, mappedBy="category")
+     */
+    private $articles;
     
     public function __construct() {
     	$this->children = new ArrayCollection();
+    	$this->articles = new ArrayCollection();
     }
+    
     /**
      * Get id
      *
@@ -208,6 +215,24 @@ class Categorie
 				}
 			}
 		}
+    }
+    
+    /**
+     * Ajoute un article lié à la catégorie courante
+     * @param \ContentBundle\Entity\Article $article
+     * @return \MenuBundle\Entity\Categorie
+     */
+    public function addArticle(\ContentBundle\Entity\Article $article): \MenuBundle\Entity\Categorie {
+    	$this->articles[] = $article;
+    	return $this;
+    }
+    
+    /**
+     * Retourne la liste des articles associées à la catégorie courante
+     * @return ArrayCollection
+     */
+    public function getArticles() {
+    	return $this->articles;
     }
     
     /**
